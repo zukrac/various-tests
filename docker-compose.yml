@@ -1,0 +1,68 @@
+services:
+  mysql:
+    image: mysql:8.0
+    environment:
+      MYSQL_ROOT_PASSWORD: root
+      MYSQL_DATABASE: vacancies_db
+      MYSQL_CHARACTER_SET_SERVER: utf8mb4
+      MYSQL_COLLATION_SERVER: utf8mb4_unicode_ci
+    volumes:
+      - ./mysql/my.cnf:/etc/mysql/conf.d/my.cnf:ro
+      - ./mysql/init:/docker-entrypoint-initdb.d
+      - ./mysql/data:/var/lib/mysql
+    networks:
+      - manticore-net
+
+  manticore:
+    image: manticoresearch/manticore:latest
+    environment:
+      - EXTRA=1
+      - CREATE_PLAIN_TABLES=1
+    ports:
+      - "9306:9306"
+      - "9308:9308"
+    volumes:
+      - ./manticore/etc/manticore.conf:/etc/manticoresearch/manticore.conf
+      - ./manticore/logs:/var/log/manticore
+      - ./manticore/data:/var/lib/manticore
+    networks:
+      - manticore-net
+    depends_on:
+      - mysql
+      
+  web:
+    build:
+      context: ./php
+      dockerfile: Dockerfile
+    env_file: .env
+    container_name: webserver
+    volumes:
+      - ./demo:${SERVER_ROOT_DIR}
+      - ./apache/sites-enabled/custom-vhost.conf:/etc/apache2/sites-enabled/custom-vhost.conf
+    extra_hosts:
+      - "host.docker.internal:host-gateway"
+    ports:
+      - '80:80'
+    networks:
+      - manticore-net
+    depends_on:
+      - mysql  
+      - manticore  
+  phpmyadmin:
+    image: phpmyadmin
+    env_file: .env
+    container_name: phpmyadmin_${PROJECT_CODE}
+    restart: unless-stopped
+    ports:
+      - 8080:80
+    networks:
+      - manticore-net
+    depends_on:
+      - mysql
+      - manticore  
+volumes:
+  mysql_data:
+  data:
+
+networks:
+  manticore-net:

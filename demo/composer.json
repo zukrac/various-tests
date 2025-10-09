@@ -1,0 +1,10 @@
+{
+    "require": {
+        "manticoresoftware/manticoresearch-php": "dev-master"
+    },
+    "config": {
+        "allow-plugins": {
+            "php-http/discovery": true
+        }
+    }
+}
